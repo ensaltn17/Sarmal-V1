@@ -7,22 +7,25 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Sarmal">
 <link rel="manifest" href="manifest.json">
-<title>Sarmal v4.2</title>
+<title>Sarmal v4.3</title>
 <style>
-:root{--bg:#121212;--panel:#1d1d1d;--text:#f2f2f2;--grid:#272727;--accent:#2ecc71;}
+:root{--bg:#121212;--panel:#1d1d1d;--text:#f2f2f2;--grid:#272727;}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;width:100%;height:100%;background:var(--bg);color:var(--text);
   font-family:-apple-system,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
   overscroll-behavior:none;overflow:hidden;touch-action:none;}
 .wrap{position:fixed;inset:0;display:flex;flex-direction:column;gap:10px;
   padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom) 12px;}
-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .title{font-weight:700;letter-spacing:.5px}
 .stats{display:flex;gap:12px;font-variant-numeric:tabular-nums}
 .pill{background:#1d1d1d;padding:6px 10px;border-radius:999px}
-.game{position:relative;flex:1;display:grid;grid-template-rows:1fr auto;gap:12px;min-height:0}
-canvas{width:100%;height:100%;background:#1d1d1d;border-radius:18px;display:block}
+.game{position:relative;flex:1;display:flex;flex-direction:column;gap:12px;min-height:0}
+.canvasWrap{position:relative;flex:1;min-height:180px}
+canvas{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  background:#1d1d1d;border-radius:18px;display:block}
 .controls{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;user-select:none}
+.controls.hidden{display:none}
 .btn{background:#1d1d1d;border:1px solid #2a2a2a;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:700;
   min-height:max(56px,12vh);font-size:max(18px,3.5vh)}
 .btn:active{transform:translateY(1px)}
@@ -62,43 +65,44 @@ canvas{width:100%;height:100%;background:#1d1d1d;border-radius:18px;display:bloc
   </header>
 
   <div class="game">
-    <canvas id="game"></canvas>
+    <div class="canvasWrap">
+      <canvas id="game"></canvas>
+      <div id="overlay" class="overlay">
+        <div class="panel">
+          <h2 id="overlayTitle">Başlamak için dokun / yön seç</h2>
 
-    <div class="controls">
+          <div class="row" style="margin-top:6px">
+            <label class="switch">
+              <input type="checkbox" id="cbShorten">
+              <span>Kendine çarpınca bitmesin, <b>kuyruk kısalsın</b></span>
+            </label>
+          </div>
+
+          <div class="row" style="margin-top:6px">
+            <input id="playerName" class="input" placeholder="İsmin (skor tablosu için)" maxlength="16" />
+            <button id="btnSaveName" class="btn" style="min-height:auto;font-size:14px;padding:8px 12px">Kaydet</button>
+          </div>
+          <div class="notice">Not: Kuyruk kısaltmada, çarptığın derinlik kadar <b>puan düşer</b>. Hız yeni puana göre kalır.</div>
+
+          <div class="board" id="scoreBoard"></div>
+
+          <div class="legend">
+            <span><span class="dot" style="background:#e63228"></span> Normal elma = +1</span>
+            <span><span class="dot" style="background:#ffce54"></span> Bonus elma = +5 (süreli)</span>
+          </div>
+
+          <div style="margin-top:10px">
+            <button id="btnStart" class="btn primary">Oyunu Başlat</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="controls" class="controls">
       <button class="btn up" data-dir="up">▲</button>
       <button class="btn left" data-dir="left">◀</button>
       <button class="btn right" data-dir="right">▶</button>
       <button class="btn down" data-dir="down">▼</button>
-    </div>
-
-    <div id="overlay" class="overlay">
-      <div class="panel">
-        <h2 id="overlayTitle">Başlamak için dokun / yön seç</h2>
-
-        <div class="row" style="margin-top:6px">
-          <label class="switch">
-            <input type="checkbox" id="cbShorten">
-            <span>Kendine çarpınca bitmesin, <b>kuyruk kısalsın</b></span>
-          </label>
-        </div>
-
-        <div class="row" style="margin-top:6px">
-          <input id="playerName" class="input" placeholder="İsmin (skor tablosu için)" maxlength="16" />
-          <button id="btnSaveName" class="btn" style="min-height:auto;font-size:14px;padding:8px 12px">Kaydet</button>
-        </div>
-        <div class="notice">Not: Kuyruk kısaltmada, çarptığın derinlik kadar <b>puan düşer</b>. Hız yeni puana göre kalır.</div>
-
-        <div class="board" id="scoreBoard"></div>
-
-        <div class="legend">
-          <span><span class="dot" style="background:#e63228"></span> Normal elma = +1</span>
-          <span><span class="dot" style="background:#ffce54"></span> Bonus elma = +5 (süreli)</span>
-        </div>
-
-        <div style="margin-top:10px">
-          <button id="btnStart" class="btn primary">Oyunu Başlat</button>
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -115,6 +119,7 @@ const btnStart=document.getElementById('btnStart'), btnPause=document.getElement
 const cbShorten=document.getElementById('cbShorten');
 const playerNameInput=document.getElementById('playerName'), btnSaveName=document.getElementById('btnSaveName');
 const scoreBoardEl=document.getElementById('scoreBoard');
+const controls=document.getElementById('controls');
 
 /* Audio */
 let audioCtx=null;
@@ -133,27 +138,47 @@ function beep(freq=440, time=0.08, type='sine'){
 const sfx={ eat:()=>beep(620,.07,'triangle'), bonus:()=>beep(900,.1,'square'), turn:()=>beep(420,.03,'sine'),
   hit:()=>{beep(200,.08,'sawtooth'); setTimeout(()=>beep(120,.10,'sawtooth'),80);} };
 
-/* Fit canvas */
-function fitCanvas(){
+/* Responsive canvas sizing */
+const grid={w:24,h:24};
+function sizeCanvas(){
   const dpr=Math.max(1,Math.min(window.devicePixelRatio||1,3));
-  const wrap=document.querySelector('.game'), rect=wrap.getBoundingClientRect();
-  const shortEdge=Math.min(rect.width, rect.height*0.86);
-  const cols=Math.max(GRID_MIN, Math.floor(shortEdge/CELL)), rows=cols;
-  canvas.style.width=(cols*CELL)+'px'; canvas.style.height=(rows*CELL)+'px';
-  canvas.width=Math.floor(cols*CELL*dpr); canvas.height=Math.floor(rows*CELL*dpr);
+  const header=document.querySelector('header');
+  const vw=window.innerWidth, vh=window.innerHeight;
+
+  const headerH=header.getBoundingClientRect().height;
+  const controlsH=controls.classList.contains('hidden') ? 0 : controls.getBoundingClientRect().height;
+  const gaps=24;
+
+  let availW = vw - 24;
+  let availH = vh - headerH - controlsH - gaps;
+
+  if(availH < 260){
+    controls.classList.add('hidden');
+    availH = vh - headerH - 12;
+  }else{
+    controls.classList.remove('hidden');
+  }
+
+  const size=Math.max(220, Math.min(availW, availH)); // kare
+  const cols=Math.max(GRID_MIN, Math.floor(size/CELL));
+  const rows=cols;
+
+  canvas.style.width=size+'px'; canvas.style.height=size+'px';
+  canvas.width=Math.floor(size*dpr); canvas.height=Math.floor(size*dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
   grid.w=cols; grid.h=rows;
 }
-window.addEventListener('resize', ()=>{ fitCanvas(); draw(); });
+new ResizeObserver(sizeCanvas).observe(document.body);
+window.addEventListener('orientationchange', ()=>setTimeout(sizeCanvas, 250));
+window.addEventListener('resize', ()=>sizeCanvas());
 
 /* State */
-const grid={w:24,h:24};
 let snake, dir, nextDir, apple, playing=false, dead=false, timer=null, score=0, best=0, tickMs=SPEEDS.slow;
 let shortenMode=false;
 let playerName=localStorage.getItem('sarmal_name')||'';
 playerNameInput.value=playerName;
 
-let bonus = {active:false, x:0, y:0, ttl:0}; // bonus apple
+let bonus = {active:false, x:0, y:0, ttl:0}; // bonus elma
 
 /* Scores */
 function loadScores(){ try{return JSON.parse(localStorage.getItem('sarmal_scores')||'[]')}catch{ return [] } }
@@ -173,12 +198,13 @@ btnSaveName.addEventListener('click', ()=>{
   localStorage.setItem('sarmal_name', playerName); renderBoard();
 });
 
-/* Speed tier */
+/* Speed tiers */
+const SPEEDS_MS={ slow:160, medium:120, fast:84, insane:60 };
 function speedByScore(sc){
-  if(sc<=10) return {name:'Yavaş',ms:SPEEDS.slow};
-  if(sc<=30) return {name:'Orta',ms:SPEEDS.medium};
-  if(sc<=99) return {name:'Hızlı',ms:SPEEDS.fast};
-  return {name:'Çok Hızlı',ms:SPEEDS.insane};
+  if(sc<=10) return {name:'Yavaş',ms:SPEEDS_MS.slow};
+  if(sc<=30) return {name:'Orta',ms:SPEEDS_MS.medium};
+  if(sc<=99) return {name:'Hızlı',ms:SPEEDS_MS.fast};
+  return {name:'Çok Hızlı',ms:SPEEDS_MS.insane};
 }
 function applySpeed(){
   const t=speedByScore(score); speedEl.textContent=t.name; tickMs=t.ms;
@@ -199,11 +225,11 @@ function reset(){
 
 /* Apple */
 function rndCell(){ return {x:Math.floor(Math.random()*grid.w), y:Math.floor(Math.random()*grid.h)}; }
-function placeApple(){ do{ apple=rndCell(); } while(snake.some(s=>s.x===apple.x && s.y===apple.y)); }
+function placeApple(){ let c; do{ c=rndCell(); } while(snake.some(s=>s.x===c.x && s.y===c.y)); apple=c; }
 function placeBonus(){
   let c, tries=0;
   do{ c=rndCell(); tries++; if(tries>200) return; } while((c.x===apple.x && c.y===apple.y) || snake.some(s=>s.x===c.x && s.y===c.y));
-  bonus={active:true, x:c.x, y=c.y, ttl:120};
+  bonus={active:true, x:c.x, y:c.y, ttl:120};
 }
 
 /* Flow */
@@ -225,7 +251,7 @@ function tick(){
 
   const hitIndex=snake.findIndex((s,i)=> i>0 && s.x===head.x && s.y===head.y);
   if(hitIndex!==-1){
-    if(shortenMode){
+    if(cbShorten.checked){
       const prevLen=snake.length;
       const newLen=hitIndex;
       const removed=Math.max(0, prevLen - newLen);
@@ -363,11 +389,11 @@ btnStart.addEventListener('click', ()=>{ reset(); start(); });
 btnPause.addEventListener('click', ()=>{ if(!playing){ start(); btnPause.textContent='Durdur'; } else { pause(); btnPause.textContent='Sürdür'; } });
 btnReset.addEventListener('click', ()=>{ pause(); reset(); });
 btnSettings.addEventListener('click', ()=>{ overlay.classList.add('show'); renderBoard(); });
-cbShorten.addEventListener('change', ()=>{ shortenMode = cbShorten.checked; localStorage.setItem('sarmal_shorten', shortenMode?'1':'0'); });
+cbShorten.addEventListener('change', ()=>{ localStorage.setItem('sarmal_shorten', cbShorten.checked?'1':'0'); });
 
 /* Boot */
-function initFromStorage(){ shortenMode = localStorage.getItem('sarmal_shorten')==='1'; cbShorten.checked=shortenMode; }
-fitCanvas(); initFromStorage();
+function initFromStorage(){ cbShorten.checked = localStorage.getItem('sarmal_shorten')==='1'; }
+sizeCanvas(); initFromStorage();
 best=Number(localStorage.getItem('sarmal_best')||0); bestEl.textContent=best;
 reset(); overlay.classList.add('show'); renderBoard();
 
